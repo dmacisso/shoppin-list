@@ -5,7 +5,14 @@ const clearBtn = document.getElementById('clear');
 const itemFilter = document.getElementById('filter');
 
 //* FUNCTIONS //
-function addItem(e) {
+
+function displayItems() {
+  const itemsFromStorage = getItemsFromStorage();
+  itemsFromStorage.forEach((item) => addItemToDOM(item));
+  checkUI();
+}
+
+function onAddItemSubmit(e) {
   e.preventDefault();
 
   const newItem = itemInput.value;
@@ -15,10 +22,22 @@ function addItem(e) {
     alert('Please add an item');
     return;
   }
+  //* create item DOM element
+  addItemToDOM(newItem);
 
+  //* add item to local storage
+  addItemToStorage(newItem);
+
+  checkUI();
+
+  //* clear the input field
+  itemInput.value = '';
+}
+
+function addItemToDOM(item) {
   //* create List Item
   const li = document.createElement('li');
-  const text = document.createTextNode(newItem);
+  const text = document.createTextNode(item);
   li.appendChild(text);
 
   const button = createButton('remove-item btn-link text-red');
@@ -26,10 +45,34 @@ function addItem(e) {
 
   //* add li to DOM
   itemList.appendChild(li);
-  checkUI();
+}
 
-  //* clear the input field
-  itemInput.value = '';
+function addItemToStorage(item) {
+  const itemsFromStorage = getItemsFromStorage();
+
+  // if (localStorage.getItem('items') === null) {
+  //   itemsFromStorage = [];
+  // } else {
+  //   itemsFromStorage = JSON.parse(localStorage.getItem('items'));
+  // }
+
+  //* add new item to the array (shopping list)
+  itemsFromStorage.push(item);
+
+  //* convert to JSON string and set to local storage
+  localStorage.setItem('items', JSON.stringify(itemsFromStorage));
+}
+
+function getItemsFromStorage() {
+  let itemsFromStorage;
+
+  if (localStorage.getItem('items') === null) {
+    itemsFromStorage = [];
+  } else {
+    itemsFromStorage = JSON.parse(localStorage.getItem('items'));
+  }
+
+  return itemsFromStorage;
 }
 
 function createButton(classes) {
@@ -47,14 +90,33 @@ function createIcon(classes) {
   return icon;
 }
 
-function removeItem(e) {
+function onClickItem(e) {
   //* event delegation
+
   if (e.target.parentElement.classList.contains('remove-item')) {
-    if (confirm('Are you sure you want to remove this item?')) {
-      e.target.parentElement.parentElement.remove();
-      checkUI();
-    }
+    removeItem(e.target.parentElement.parentElement);
   }
+}
+
+function removeItem(item) {
+  if (confirm('Are you sure you want to remove this item?')) {
+    //* Remove item from DOM
+    item.remove();
+
+    //* Remove item from Storage
+    removeItemFromStorage(item.textContent);
+
+    checkUI();
+  }
+}
+
+function removeItemFromStorage(item) {
+  let itemsFromStorage = getItemsFromStorage();
+  //* filter out item to be removed
+  itemsFromStorage = itemsFromStorage.filter((i) => i !== item);
+
+  //* reset to local storage
+  localStorage.setItem('items', JSON.stringify(itemsFromStorage));
 }
 
 function clearItems() {
@@ -63,6 +125,10 @@ function clearItems() {
   while (itemList.firstChild) {
     itemList.removeChild(itemList.firstChild);
   }
+
+  //* clear from local storage
+  localStorage.removeItem('items');
+
   checkUI();
 }
 
@@ -97,13 +163,21 @@ function filterItems(e) {
   });
 }
 
-//* EVENT LISTENERS //
-itemForm.addEventListener('submit', addItem);
-itemList.addEventListener('click', removeItem);
-clearBtn.addEventListener('click', clearItems);
-itemFilter.addEventListener('input', filterItems);
-// itemFilter.addEventListener('keydown', (e) =>
-//   console.log(`Your pressed ${e.key}`)
-// );
+//* Initialize the app
+function init() {
+  //* Event Listeners
+  itemForm.addEventListener('submit', onAddItemSubmit);
+  itemList.addEventListener('click', onClickItem);
+  clearBtn.addEventListener('click', clearItems);
+  itemFilter.addEventListener('input', filterItems);
+  document.addEventListener('DOMContentLoaded', displayItems);
+  checkUI();
+}
 
-checkUI();
+init();
+
+// localStorage.setItem('name', 'David');
+// const myName = localStorage.getItem('name');
+// console.log(myName)
+// localStorage.removeItem('name')
+// localStorage.clear()
